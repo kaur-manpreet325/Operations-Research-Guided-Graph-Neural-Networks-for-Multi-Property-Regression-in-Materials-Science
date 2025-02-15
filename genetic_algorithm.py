@@ -131,8 +131,22 @@ def load_checkpoint():
     except FileNotFoundError:
         return None
 
+def tournament_selection(population, tournament_size, structures, targets, scaler, create_individual):
+    """Select the best individual from a random sample of the population, excluding NaNs."""
+    selected = random.sample(population, tournament_size)
+    best = None
+    best_mae = float('inf')
+    for individual in selected:
+        mae, _ = evaluate_individual(individual, structures, targets, scaler)
+        if not np.isnan(mae) and mae < best_mae:  # Exclude NaN individuals
+            best_mae = mae
+            best = individual
+    if best is None:  # If all individuals in the tournament are NaN, create a new random one
+        return create_individual()
+    return best
+
 # Genetic Algorithm
-def genetic_algorithm(population_size=5, num_generations=5, pmut=0.05):
+def genetic_algorithm(population_size=5, num_generations=5, pmut=0.05, tournament_size=3):
     # Define the hyperparameter space
     param_choices = {
         'epochs': lambda: random.randint(50, 250),
@@ -162,7 +176,7 @@ def genetic_algorithm(population_size=5, num_generations=5, pmut=0.05):
         start_individual = 0
         best_mae = float('inf')
 
-
+    best_params = None # Initialize best_params
     with open('optimization_results_GA.txt', 'a') as f:
         for generation in range(start_generation, num_generations):
             for individual_idx in range(start_individual, population_size):
@@ -213,30 +227,34 @@ def genetic_algorithm(population_size=5, num_generations=5, pmut=0.05):
             # Reset individual index for next generation
             start_individual = 0
 
-            # Selection (select top individuals - here, simplest is just to sort)
-            ranked_population = sorted(population, key=lambda ind: evaluate_individual(ind, valid_structures, valid_targets, scaler)[0])
-            population = ranked_population[:population_size // 2] #take top half
-            while len(population) < population_size:
-                population.append(create_individual()) # pad with random individuals
+            # Selection (Tournament Selection)
+            selected_parents = [tournament_selection(population, tournament_size, valid_structures, valid_targets, scaler, create_individual) for _ in range(population_size)]
 
-            # Crossover (single point crossover - very basic)
+            # Crossover (Two-Point Crossover)
             offspring = []
             for i in range(0, population_size, 2):
-                parent1 = population[i % len(population)]
-                parent2 = population[(i + 1) % len(population)]
+                parent1 = selected_parents[i % len(selected_parents)]
+                parent2 = selected_parents[(i + 1) % len(selected_parents)]
 
-                crossover_point = random.choice(list(param_choices.keys()))
-                child1 = parent1.copy()
-                child2 = parent2.copy()
-
-                # Swap parameters after the crossover point
                 keys = list(param_choices.keys())
-                crossover_index = keys.index(crossover_point)
-                for j in range(crossover_index, len(keys)):
+                if len(keys) < 2:  # Need at least two keys for two-point crossover
+                    offspring.extend([parent1.copy(), parent2.copy()])
+                    continue
+
+                # Select two distinct crossover points
+                crossover_points = random.sample(range(len(keys)), 2)
+                crossover_points.sort()  # Ensure they are in order
+                cp1, cp2 = crossover_points[0], crossover_points[1]
+
+                child1, child2 = parent1.copy(), parent2.copy()
+
+                # Perform crossover between the two points
+                for j in range(cp1, cp2 + 1):
                     key = keys[j]
-                    child1[key] = parent2[key]
-                    child2[key] = parent1[key]
+                    child1[key], child2[key] = parent2[key], parent1[key]
+
                 offspring.extend([child1, child2])
+
             population = offspring
 
             # Mutation
@@ -270,31 +288,36 @@ best_params = genetic_algorithm()
 end_time = time.time()
 
 # Final model training and evaluation
-epochs, lr, batch_size, npass, nblocks = best_params['epochs'], best_params['lr'], best_params['batch_size'], best_params['npass'], best_params['nblocks']
-final_model = initialize_model(lr, npass, nblocks)
+if best_params is not None:
+    epochs, lr, batch_size, npass, nblocks = best_params['epochs'], best_params['lr'], best_params['batch_size'], best_params['npass'], best_params['nblocks']
+    final_model = initialize_model(lr, npass, nblocks)
 
-final_model.train(
-    train_structures,
-    train_targets_normalized,
-    validation_structures=valid_structures,
-    validation_targets=valid_targets_normalized,
-    epochs=epochs,
-    batch_size=batch_size
-)
+    final_model.train(
+        train_structures,
+        train_targets_normalized,
+        validation_structures=valid_structures,
+        validation_targets=valid_targets_normalized,
+        epochs=epochs,
+        batch_size=batch_size
+    )
 
-test_mae, test_r2, test_pearson = evaluate_model(final_model, test_structures, test_targets)
+    test_mae, test_r2, test_pearson = evaluate_model(final_model, test_structures, test_targets)
 
-overall_test_mae = np.nanmean(test_mae)
-overall_test_r2 = np.nanmean(test_r2)
-overall_test_pearson = np.nanmean(test_pearson)
+    overall_test_mae = np.nanmean(test_mae)
+    overall_test_r2 = np.nanmean(test_r2)
+    overall_test_pearson = np.nanmean(test_pearson)
 
-with open('optimization_results_GA.txt', 'a') as f:
-    log_results("\nFinal Model Evaluation on Test Set:", f)
-    for i, prop in enumerate(['band_gap', 'formation_energy_per_atom', 'energy_above_hull']):
-        log_results(f"MAE for {prop}: {test_mae[i]:.6f}", f)
-        log_results(f"R2 for {prop}: {test_r2[i]:.6f}", f)
-        log_results(f"Pearson for {prop}: {test_pearson[i]:.6f}", f)
-    log_results(f"Average Test MAE: {overall_test_mae:.6f}", f)
-    log_results(f"Average Test R2: {overall_test_r2:.6f}", f)
-    log_results(f"Average Test Pearson: {overall_test_pearson:.6f}", f)
-    log_results(f"Total optimization time: {end_time - start_time:.1f} seconds", f)
+    with open('optimization_results_GA.txt', 'a') as f:
+        log_results("\nFinal Model Evaluation on Test Set:", f)
+        for i, prop in enumerate(['band_gap', 'formation_energy_per_atom', 'energy_above_hull']):
+            log_results(f"MAE for {prop}: {test_mae[i]:.6f}", f)
+            log_results(f"R2 for {prop}: {test_r2[i]:.6f}", f)
+            log_results(f"Pearson for {prop}: {test_pearson[i]:.6f}", f)
+        log_results(f"Average Test MAE: {overall_test_mae:.6f}", f)
+        log_results(f"Average Test R2: {overall_test_r2:.6f}", f)
+        log_results(f"Average Test Pearson: {overall_test_pearson:.6f}", f)
+        log_results(f"Total optimization time: {end_time - start_time:.1f} seconds", f)
+else:
+    with open('optimization_results_GA.txt', 'a') as f:
+        log_results("No best parameters found during genetic algorithm execution.", f)
+        log_results(f"Total optimization time: {end_time - start_time:.1f} seconds", f)
