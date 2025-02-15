@@ -1,5 +1,5 @@
-# Operations-Research-Guided-Graph-Neural-Networks-for-Multi-Property-Regression-in-Materials-Science
-This repository contains the code and data used in the study "Operations-Research-Guided-Graph-Neural-Networks-for-Multi-Property-Regression-in-Materials-Science".  We used a Materials Graph Network (MEGNet) architecture, as shown in figure below, to predict material properties like band gap (Eg), formation energy (Ef), and energy above hull (E_hull).
+# Operations Research-Guided Graph Neural Networks for Multi-Property Regression in Materials Science
+This repository contains the code and data used in the study "Operations Research-Guided Graph Neural Networks for Multi-Property Regression in Materials Science".  We used a Materials Graph Network (MEGNet) architecture, as shown in figure below, to predict material properties like band gap (Eg), formation energy (Ef), and energy above hull (E_hull).
 
 ![MEGNet Architecture](MEGNet_Architecture.png)
 
