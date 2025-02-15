@@ -1,0 +1,4 @@
+mp_api==0.45.1
+megnet==1.3.2
+tensorflow==2.15.0
+pymatgen==2025.1.9
