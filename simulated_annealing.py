@@ -260,6 +260,15 @@ overall_test_pearson = np.nanmean(test_pearson)
 
 with open('optimization_results_SA.txt', 'a') as f:
     log_results("\nFinal Model Evaluation on Test Set:", f)
+
+    # Log the best hyperparameters
+    log_results("\nBest Hyperparameters Used for Test Set Evaluation:", f)
+    log_results(f"Epochs: {epochs}", f)
+    log_results(f"Learning rate: {lr:.6f}", f)
+    log_results(f"Batch size: {batch_size}", f)
+    log_results(f"Passes: {npass}", f)
+    log_results(f"Blocks: {nblocks}\n", f)
+
     for i, prop in enumerate(['band_gap', 'formation_energy_per_atom', 'energy_above_hull']):
         log_results(f"MAE for {prop}: {test_mae[i]:.6f}", f)
         log_results(f"R2 for {prop}: {test_r2[i]:.6f}", f)
