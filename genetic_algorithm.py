@@ -145,7 +145,6 @@ def tournament_selection(population, tournament_size, structures, targets, scale
         return create_individual()
     return best
 
-# Genetic Algorithm
 def genetic_algorithm(population_size=5, num_generations=5, pmut=0.05, tournament_size=3):
     # Define the hyperparameter space
     param_choices = {
@@ -229,7 +228,6 @@ def genetic_algorithm(population_size=5, num_generations=5, pmut=0.05, tournamen
 
             # Selection (Tournament Selection)
             selected_parents = [tournament_selection(population, tournament_size, valid_structures, valid_targets, scaler, create_individual) for _ in range(population_size)]
-
             # Crossover (Two-Point Crossover)
             offspring = []
             for i in range(0, population_size, 2):
@@ -309,6 +307,15 @@ if best_params is not None:
 
     with open('optimization_results_GA.txt', 'a') as f:
         log_results("\nFinal Model Evaluation on Test Set:", f)
+
+        # Log the best hyperparameters
+        log_results("\nBest Hyperparameters:", f)
+        log_results(f"Epochs: {best_params['epochs']}", f)
+        log_results(f"Learning rate: {best_params['lr']:.6f}", f)
+        log_results(f"Batch size: {best_params['batch_size']}", f)
+        log_results(f"Passes: {best_params['npass']}", f)
+        log_results(f"Blocks: {best_params['nblocks']}\n", f)
+
         for i, prop in enumerate(['band_gap', 'formation_energy_per_atom', 'energy_above_hull']):
             log_results(f"MAE for {prop}: {test_mae[i]:.6f}", f)
             log_results(f"R2 for {prop}: {test_r2[i]:.6f}", f)
