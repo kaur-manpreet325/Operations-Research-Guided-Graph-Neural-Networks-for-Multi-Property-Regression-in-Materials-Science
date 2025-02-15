@@ -1,7 +1,7 @@
 # Operations-Research-Guided-Graph-Neural-Networks-for-Multi-Property-Regression-in-Materials-Science
 This repository contains the code and data used in the study "Operations-Research-Guided-Graph-Neural-Networks-for-Multi-Property-Regression-in-Materials-Science".  We used a Materials Graph Network (MEGNet) architecture, as shown in Figure below, to predict material properties like band gap (Eg), formation energy (Ef), and energy above hull (E_hull).
 
-![MEGNet Architecture](images/megnet_architecture.png)
+![MEGNet Architecture](MEGNet Architecture.png)
 
 ## Overview
 This project demonstrates the application of MEGNet for predicting key material properties using structural information from the Materials Project Database (MPD).  We employed hyperparameter optimization (HPO) techniques, specifically Genetic Algorithm (GA) and Simulated Annealing (SA), to fine-tune the MEGNet model for improved prediction accuracy.
